@@ -113,7 +113,17 @@
         window.addEventListener('keydown', onKeyDown)
         window.addEventListener('keyup', onKeyUp)
 
+        window.addEventListener('click', tapScreen)
+
         window.addEventListener('load', start)
+
+
+        function tapScreen() {
+            spaceKeyIsPressed = true
+            setTimeout(() => {
+                spaceKeyIsPressed = false
+            }, 500);
+        }
 
         function start() {
             window.requestAnimationFrame(mainLoop)
