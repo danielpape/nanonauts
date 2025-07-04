@@ -53,6 +53,9 @@
         var robotImage = new Image();
         robotImage.src = 'animatedRobot.png';
 
+        var brokenRobotImage = new Image();
+        brokenRobotImage.src = 'brokenRobot.png'; // Export your broken robot art to this file
+
         var backgroundImage = new Image();
         backgroundImage.src = 'background.png';
 
@@ -263,15 +266,10 @@
                     var robotTop = robot.y + robotCollisionRectangle.yOffset;
 
                     if (nanonautYSpeed > 0 && nanonautBottom <= robotTop + 10) {
-                        explosions.push({
-                            x: robot.x + ROBOT_WIDTH / 2,
-                            y: robot.y + ROBOT_HEIGHT / 2,
-                            lifetime: 30
-                        });
-                        robotData.splice(i, 1);
-                        ROBOTS_DESTROYED++;
-                        i--;
-                        nanonautYSpeed = -10;
+                        robot.destroyed = true;
+                        robot.smokeTimer = 60; // frames of smoke
+                        ROBOTS_DESTROYED += 1;
+                        nanonautYSpeed = -10; // bounce up
                         continue;
                     } else {
                         nanonautTouchedARobot = true;
@@ -300,7 +298,9 @@
                 robotData.push({
                     x: newRobotX,
                     y: GROUND_Y - ROBOT_HEIGHT,
-                    frameNr: 0
+                    frameNr: 0,
+                    destroyed: false,
+                    smokeTimer: 0
                 });
             }
 
@@ -344,13 +344,54 @@
 
             // Draw robots
             for (var i = 0; i < robotData.length; i++) {
-                drawAnimatedSprite(
-                    robotData[i].x - shakenCameraX,
-                    robotData[i].y - shakenCameraY,
-                    robotData[i].frameNr,
-                    robotSpriteSheet
-                );
+                var robot = robotData[i];
+                if (robot.destroyed) {
+                    // Draw broken robot image
+                    c.drawImage(brokenRobotImage, robot.x - shakenCameraX, robot.y - shakenCameraY);
+
+                    // Fire and smoke effects
+                    const baseX = robot.x - shakenCameraX + ROBOT_WIDTH / 2;
+                    const baseY = robot.y - shakenCameraY + ROBOT_HEIGHT / 2;
+
+                    // 🔥 Fire glow (behind smoke)
+                    for (let f = 0; f < 8; f++) {
+                        const flameX = baseX + (Math.random() - 0.5) * 30;
+                        const flameY = baseY + (Math.random() - 0.5) * 30;
+                        const flameRadius = 8 + Math.random() * 10;
+                        const fireColors = ['rgba(255, 100, 0, 0.4)', 'rgba(255, 180, 0, 0.3)', 'rgba(255, 255, 0, 0.2)'];
+                        const fireColor = fireColors[Math.floor(Math.random() * fireColors.length)];
+                        c.beginPath();
+                        c.fillStyle = fireColor;
+                        c.arc(flameX, flameY, flameRadius, 0, Math.PI * 2);
+                        c.fill();
+                    }
+
+                    // 💨 Smoke puffs (in front of fire)
+                    for (let j = 0; j < 25; j++) {
+                        const timeOffset = (gameFrameCalculator + j * 4);
+                        const offsetX = Math.sin(timeOffset / 20 + j) * 10 + (Math.random() - 0.5) * 12;
+                        const offsetY = -j * 6 - Math.random() * 8;
+                        const radius = 10 + Math.random() * 10;
+                        const opacity = 0.1 + Math.random() * 0.2;
+
+                        c.beginPath();
+                        c.fillStyle = `rgba(100, 100, 100, ${opacity.toFixed(2)})`;
+                        c.arc(baseX + offsetX, baseY + offsetY, radius, 0, Math.PI * 2);
+                        c.fill();
+                    }
+
+
+                } else {
+                    // Normal robot animation
+                    drawAnimatedSprite(
+                        robot.x - shakenCameraX,
+                        robot.y - shakenCameraY,
+                        robot.frameNr,
+                        robotSpriteSheet
+                    );
+                }
             }
+
 
             // Draw explosions
             for (var i = 0; i < explosions.length; i++) {
