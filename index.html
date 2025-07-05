@@ -39,6 +39,17 @@
         var GAME_OVER_GAME_MODE = 1
         var JUMPS_USED = 0;
         var ROBOTS_DESTROYED = 0;
+        var isPaused = false;
+        var pauseButton = {
+            radius: 30,
+            margin: 20,
+            get x() {
+                return CANVAS_WIDTH - this.radius - this.margin;
+            },
+            get y() {
+                return CANVAS_HEIGHT - this.radius - this.margin;
+            }
+        };
 
         // STATE
         var canvas = document.createElement('canvas');
@@ -121,23 +132,27 @@
         window.addEventListener('load', start);
 
         canvas.addEventListener('click', function (event) {
-            if (gameMode !== GAME_OVER_GAME_MODE) return;
-
-            // Get click position relative to canvas
             const rect = canvas.getBoundingClientRect();
             const clickX = event.clientX - rect.left;
             const clickY = event.clientY - rect.top;
+
+            // 📍 Pause button click detection
+            const dx = clickX - pauseButton.x;
+            const dy = clickY - pauseButton.y;
+            if (Math.sqrt(dx * dx + dy * dy) <= pauseButton.radius) {
+                isPaused = !isPaused;
+                return;
+            }
+
+            // 🟥 Restart button (only if game over)
+            if (gameMode !== GAME_OVER_GAME_MODE) return;
 
             const btnWidth = 250;
             const btnHeight = 80;
             const btnX = (CANVAS_WIDTH / 2) - (btnWidth / 2);
             const btnY = 350;
 
-            // Check if click is inside restart button bounds
-            if (
-                clickX >= btnX && clickX <= btnX + btnWidth &&
-                clickY >= btnY && clickY <= btnY + btnHeight
-            ) {
+            if (clickX >= btnX && clickX <= btnX + btnWidth && clickY >= btnY && clickY <= btnY + btnHeight) {
                 restartGame();
             }
         });
@@ -170,7 +185,9 @@
         }
 
         function mainLoop() {
-            update();
+            if (!isPaused && gameMode === PLAY_GAME_MODE) {
+                update();
+            }
             draw();
             window.requestAnimationFrame(mainLoop);
         }
@@ -179,7 +196,13 @@
             if (event.keyCode === SPACE_KEYCODE) {
                 spaceKeyIsPressed = true;
             }
+
+            // 🅿️ Toggle pause with "P" key (keyCode 80)
+            if (event.key.toLowerCase() === 'p') {
+                isPaused = !isPaused;
+            }
         }
+
 
         function onKeyUp(event) {
             if (event.keyCode === SPACE_KEYCODE) {
@@ -270,6 +293,7 @@
                         robot.smokeTimer = 60; // frames of smoke
                         ROBOTS_DESTROYED += 1;
                         nanonautYSpeed = -10; // bounce up
+
                         continue;
                     } else {
                         nanonautTouchedARobot = true;
@@ -479,6 +503,36 @@
                     spriteSheet.spriteWidth,
                     spriteSheet.spriteHeight
                 );
+            }
+
+            // 🟠 Draw Pause Button
+            c.save();
+            c.beginPath();
+            c.arc(pauseButton.x, pauseButton.y, pauseButton.radius, 0, Math.PI * 2);
+            c.fillStyle = '#333';
+            c.fill();
+            c.strokeStyle = 'white';
+            c.lineWidth = 3;
+            c.stroke();
+
+            c.fillStyle = 'white';
+            c.font = '28px sans-serif';
+            c.textAlign = 'center';
+            c.textBaseline = 'middle';
+            c.fillText('P', pauseButton.x, pauseButton.y);
+            c.restore();
+
+            // 💤 Draw "PAUSED" label
+            if (isPaused && gameMode === PLAY_GAME_MODE) {
+                c.save();
+                c.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                c.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+                c.fillStyle = 'white';
+                c.font = '72px sans-serif';
+                c.textAlign = 'center';
+                c.fillText('PAUSED', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+                c.restore();
             }
         }
 
